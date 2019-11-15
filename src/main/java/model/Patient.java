@@ -1,24 +1,26 @@
 package model;
 
-public class Patient {
-    private int parientId;
-    private String foreame;
+import java.io.Serializable;
+
+public class Patient implements Serializable {
+    private int patientId;
+    private String forename;
     private String surname;
 
-    public int getParientId() {
-        return parientId;
+    public int getPatientId() {
+        return patientId;
     }
 
-    public void setParientId(int parientId) {
-        this.parientId = parientId;
+    public void setPatientId(int patientId) {
+        this.patientId = patientId;
     }
 
-    public String getForeame() {
-        return foreame;
+    public String getForename() {
+        return forename;
     }
 
-    public void setForeame(String foreame) {
-        this.foreame = foreame;
+    public void setForename(String forename) {
+        this.forename = forename;
     }
 
     public String getSurname() {
@@ -27,5 +29,14 @@ public class Patient {
 
     public void setSurname(String surname) {
         this.surname = surname;
+    }
+
+    @Override
+    public String toString() {
+        return "Patient{" +
+                "patientId=" + patientId +
+                ", forename='" + forename + '\'' +
+                ", surname='" + surname + '\'' +
+                '}';
     }
 }

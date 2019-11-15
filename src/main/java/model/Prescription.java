@@ -1,11 +1,13 @@
 package model;
 
+import java.io.Serializable;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
-public class Prescription {
+public class Prescription implements Serializable {
     private int prescriptionId;
+    private Patient patient;
     private Medicine medicine;
     private Issuer issuer;
     private Date issueDate;
@@ -20,6 +22,14 @@ public class Prescription {
 
     public void setPrescriptionId(int prescriptionId) {
         this.prescriptionId = prescriptionId;
+    }
+
+    public Patient getPatient() {
+        return patient;
+    }
+
+    public void setPatient(Patient patient) {
+        this.patient = patient;
     }
 
     public Medicine getMedicine() {
@@ -96,5 +106,20 @@ public class Prescription {
     @Override
     public int hashCode() {
         return Objects.hash(prescriptionId, medicine, issuer, issueDate, comment, quantity, payment, isRealized);
+    }
+
+    @Override
+    public String toString() {
+        return "Prescription{" +
+                "prescriptionId=" + prescriptionId +
+                ", patient=" + patient +
+                ", medicine=" + medicine +
+                ", issuer=" + issuer +
+                ", issueDate=" + issueDate +
+                ", comment='" + comment + '\'' +
+                ", quantity=" + quantity +
+                ", payment=" + payment +
+                ", isRealized=" + isRealized +
+                '}';
     }
 }

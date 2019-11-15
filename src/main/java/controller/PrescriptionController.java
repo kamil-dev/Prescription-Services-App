@@ -1,19 +1,32 @@
 package controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.iki.elonen.NanoHTTPD;
 import model.Prescription;
+import storage.ListOfPharmacists;
 import storage.TemporaryPrescriptionStorage;
 
-import static fi.iki.elonen.NanoHTTPD.Response.Status.INTERNAL_ERROR;
-import static fi.iki.elonen.NanoHTTPD.Response.Status.OK;
+import static fi.iki.elonen.NanoHTTPD.Response.Status.*;
 import static fi.iki.elonen.NanoHTTPD.newFixedLengthResponse;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
 
 public class PrescriptionController {
+    private final static String PRESCRIPTION_ID_PARAM_NAME = "prescriptionId";
+    private final static String PHARMACIST_ID_PARAM_NAME = "pharmacistId";
+    private final static String PHARMACIST_PASSWORD_PARAM_NAME = "pharmacistPassword";
 
-    public NanoHTTPD.Response serveAddPrescription(NanoHTTPD.IHTTPSession session){
+    private static final String PATH_TO_PRESCRIPTION_STORAGE = "src/main/java/storage/prescriptions.txt";
+    private static final String PATH_TO_PHARMACISTS_STORAGE = "src/main/java/storage/pharmacists.txt";
+
+    public NanoHTTPD.Response serveAddPrescription(NanoHTTPD.IHTTPSession session) {
         ObjectMapper objectMapper = new ObjectMapper();
         int randomPrescriptionId;
 
@@ -21,26 +34,129 @@ public class PrescriptionController {
         byte[] buffer = new byte[contentLength];
 
         try {
-            session.getInputStream().read(buffer,0,contentLength);
+            session.getInputStream().read(buffer, 0, contentLength);
             String requestBody = new String(buffer).trim();
             Prescription requestPrescription = objectMapper.readValue(requestBody, Prescription.class);
             randomPrescriptionId = requestPrescription.hashCode();
             requestPrescription.setPrescriptionId(randomPrescriptionId);
 
+            requestPrescription.setIssueDate(new Date());
+            requestPrescription.setRealized(false);
+
             TemporaryPrescriptionStorage.addNewPrescription(requestPrescription);
+
+            try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(PATH_TO_PRESCRIPTION_STORAGE))) {
+                oos.writeObject(TemporaryPrescriptionStorage.PRESCRIPTIONS);
+            } catch (FileNotFoundException e1){
+                System.err.println("File has not been found");
+                e1.printStackTrace();
+            } catch (IOException e2) {
+                System.err.println("Input & Output exception");
+                e2.printStackTrace();
+            }
+
         } catch (IOException e) {
             System.err.println("Error during process request: " + e);
             return newFixedLengthResponse(INTERNAL_ERROR, "text/plain", "Internal error prescription has not been added to the system");
         }
 
-        return newFixedLengthResponse(OK, "text/plain","Prescription has been added under id : " + randomPrescriptionId);
+        return newFixedLengthResponse(OK, "text/plain", "Prescription has been added under id : " + randomPrescriptionId);
     }
 
-    public NanoHTTPD.Response serveGetPrescription(NanoHTTPD.IHTTPSession session){
-        return null;
+    public NanoHTTPD.Response serveGetPrescription(NanoHTTPD.IHTTPSession session) {
+        Map<String, List<String>> requestParameters = session.getParameters();
+
+        if (requestParameters.containsKey(PRESCRIPTION_ID_PARAM_NAME)) {
+            List<String> prescriptionIdParams = requestParameters.get(PRESCRIPTION_ID_PARAM_NAME);
+            String prescriptionIdParam = prescriptionIdParams.get(0);
+            int prescriptionId = 0;
+
+            try {
+                prescriptionId = Integer.parseInt(prescriptionIdParam);
+            } catch (NumberFormatException e) {
+                System.err.println("Error during convert request");
+                return newFixedLengthResponse(BAD_REQUEST, "text/plain", "Request param 'prescriptionId' has to be a number");
+            }
+
+            Prescription prescription = TemporaryPrescriptionStorage.getPrescription(prescriptionId);
+            if (prescription != null) {
+                try {
+                    ObjectMapper objectMapper = new ObjectMapper();
+                    String response = objectMapper.writeValueAsString(prescription);
+                    return newFixedLengthResponse(OK, "application/json", response);
+                } catch (JsonProcessingException e) {
+                    System.err.println("Error during process request");
+                    return newFixedLengthResponse(INTERNAL_ERROR, "text/plain", "Internal error - can not read a prescription");
+                }
+            }
+            return newFixedLengthResponse(NOT_FOUND, "application/json", "");
+        }
+        return newFixedLengthResponse(BAD_REQUEST, "text/plain", "Wrong request params");
     }
 
-    public NanoHTTPD.Response serveRealizePrescription(NanoHTTPD.IHTTPSession session){
-        return null;
+    public NanoHTTPD.Response serveRealizePrescription(NanoHTTPD.IHTTPSession session) {
+
+        Map<String, List<String>> requestParameters = session.getParameters();
+
+        if (requestParameters.containsKey(PRESCRIPTION_ID_PARAM_NAME) &&
+                requestParameters.containsKey(PHARMACIST_ID_PARAM_NAME) &&
+                requestParameters.containsKey(PHARMACIST_PASSWORD_PARAM_NAME)) {
+            List<String> prescriptionIdParams = requestParameters.get(PRESCRIPTION_ID_PARAM_NAME);
+            List<String> pharmacistIdParams = requestParameters.get(PHARMACIST_ID_PARAM_NAME);
+            List<String> pharmacistPasswordParams = requestParameters.get(PHARMACIST_PASSWORD_PARAM_NAME);
+
+            String prescriptionIdParam = prescriptionIdParams.get(0);
+            String pharmacistIdParam = pharmacistIdParams.get(0);
+            String pharmacistPassword = pharmacistPasswordParams.get(0);
+
+            int prescriptionId = 0;
+            int pharmacistId = 0;
+
+            try {
+                prescriptionId = Integer.parseInt(prescriptionIdParam);
+                pharmacistId = Integer.parseInt(pharmacistIdParam);
+            } catch (NumberFormatException e) {
+                System.err.println("Error during convert request");
+                return newFixedLengthResponse(BAD_REQUEST, "text/plain", "Request params 'prescriptionId' and" +
+                        "pharmacistId have to be a number");
+            }
+            if (ListOfPharmacists.getPharmacist(pharmacistId, pharmacistPassword) == null) {
+                return newFixedLengthResponse(BAD_REQUEST, "text/plain", "The pharmacist id and/or password is not valid");
+            }
+
+            Prescription prescription = TemporaryPrescriptionStorage.getPrescription(prescriptionId);
+
+            if (prescription != null) {
+                if (prescription.isRealized() == true) {
+                    return newFixedLengthResponse(OK, "text/plain", "This prescription has already been realized");
+                }
+                try {
+                    ObjectMapper objectMapper = new ObjectMapper();
+                    String response = objectMapper.writeValueAsString(prescription);
+
+                    return newFixedLengthResponse(OK, "application/json", response);
+                } catch (JsonProcessingException e) {
+                    System.err.println("Error during process request");
+                    return newFixedLengthResponse(INTERNAL_ERROR, "text/plain", "Internal error - can not read a prescription");
+                } finally {
+                    prescription.setRealized(true);
+                    ListOfPharmacists.addRealizedPrescription(pharmacistId, pharmacistPassword, prescriptionId);
+
+                    try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(PATH_TO_PRESCRIPTION_STORAGE))) {
+                        oos.writeObject(TemporaryPrescriptionStorage.PRESCRIPTIONS);
+                    } catch (FileNotFoundException e1){
+                        System.err.println("File has not been found");
+                        e1.printStackTrace();
+                    } catch (IOException e2) {
+                        System.err.println("Input & Output exception");
+                        e2.printStackTrace();
+                    }
+                }
+
+            }
+            return newFixedLengthResponse(NOT_FOUND, "application/json", "");
+
+        }
+        return newFixedLengthResponse(BAD_REQUEST, "text/plain", "Wrong request params");
     }
 }

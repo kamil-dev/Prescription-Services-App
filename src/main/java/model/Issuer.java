@@ -1,8 +1,10 @@
 package model;
 
-public class Issuer {
+import java.io.Serializable;
+
+public class Issuer implements Serializable {
     private int issuerId;
-    private String foreame;
+    private String forename;
     private String surname;
     private String phoneNumber;
 
@@ -14,12 +16,12 @@ public class Issuer {
         this.issuerId = issuerId;
     }
 
-    public String getForeame() {
-        return foreame;
+    public String getForename() {
+        return forename;
     }
 
-    public void setForeame(String foreame) {
-        this.foreame = foreame;
+    public void setForename(String forename) {
+        this.forename = forename;
     }
 
     public String getSurname() {
@@ -36,5 +38,15 @@ public class Issuer {
 
     public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
+    }
+
+    @Override
+    public String toString() {
+        return "Issuer{" +
+                "issuerId=" + issuerId +
+                ", forename='" + forename + '\'' +
+                ", surname='" + surname + '\'' +
+                ", phoneNumber='" + phoneNumber + '\'' +
+                '}';
     }
 }

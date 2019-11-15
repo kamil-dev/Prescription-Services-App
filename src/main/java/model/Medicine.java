@@ -1,6 +1,8 @@
 package model;
 
-public class Medicine {
+import java.io.Serializable;
+
+public class Medicine implements Serializable {
     private int medicineId;
     private String name;
     private String description;
@@ -27,5 +29,14 @@ public class Medicine {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    @Override
+    public String toString() {
+        return "Medicine{" +
+                "medicineId=" + medicineId +
+                ", name='" + name + '\'' +
+                ", description='" + description + '\'' +
+                '}';
     }
 }
