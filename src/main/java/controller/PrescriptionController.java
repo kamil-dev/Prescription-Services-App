@@ -3,18 +3,14 @@ package controller;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.iki.elonen.NanoHTTPD;
+import model.Pharmacist;
 import model.Prescription;
 import storage.Datasource;
-import storage.ListOfPharmacists;
-import storage.TemporaryPrescriptionStorage;
 
 import static fi.iki.elonen.NanoHTTPD.Response.Status.*;
 import static fi.iki.elonen.NanoHTTPD.newFixedLengthResponse;
 
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.sql.Date;
 import java.util.List;
 import java.util.Map;
@@ -105,22 +101,23 @@ public class PrescriptionController {
             String pharmacistIdParam = pharmacistIdParams.get(0);
             String pharmacistPassword = pharmacistPasswordParams.get(0);
 
-            int prescriptionId = 0;
-            int pharmacistId = 0;
+            long prescriptionId = 0;
+            long pharmacistId = 0;
 
             try {
-                prescriptionId = Integer.parseInt(prescriptionIdParam);
-                pharmacistId = Integer.parseInt(pharmacistIdParam);
+                prescriptionId = Long.parseLong(prescriptionIdParam);
+                pharmacistId = Long.parseLong(pharmacistIdParam);
             } catch (NumberFormatException e) {
                 System.err.println("Error during convert request");
                 return newFixedLengthResponse(BAD_REQUEST, "text/plain", "Request params 'prescriptionId' and" +
                         "pharmacistId have to be a number");
             }
-            if (ListOfPharmacists.getPharmacist(pharmacistId, pharmacistPassword) == null) {
+            Pharmacist pharmacist = database.getPharmacist(pharmacistId, pharmacistPassword);
+            if ( pharmacist == null) {
                 return newFixedLengthResponse(BAD_REQUEST, "text/plain", "The pharmacist id and/or password is not valid");
             }
 
-            Prescription prescription = TemporaryPrescriptionStorage.getPrescription(prescriptionId);
+            Prescription prescription = database.getPrescription(prescriptionId);
 
             if (prescription != null) {
                 if (prescription.isRealized() == true) {
@@ -129,24 +126,14 @@ public class PrescriptionController {
                 try {
                     ObjectMapper objectMapper = new ObjectMapper();
                     String response = objectMapper.writeValueAsString(prescription);
-
                     return newFixedLengthResponse(OK, "application/json", response);
                 } catch (JsonProcessingException e) {
                     System.err.println("Error during process request");
                     return newFixedLengthResponse(INTERNAL_ERROR, "text/plain", "Internal error - can not read a prescription");
                 } finally {
                     prescription.setRealized(true);
-                    ListOfPharmacists.addRealizedPrescription(pharmacistId, pharmacistPassword, prescriptionId);
-
-                    try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(PATH_TO_PRESCRIPTION_STORAGE))) {
-                        oos.writeObject(TemporaryPrescriptionStorage.PRESCRIPTIONS);
-                    } catch (FileNotFoundException e1){
-                        System.err.println("File has not been found");
-                        e1.printStackTrace();
-                    } catch (IOException e2) {
-                        System.err.println("Input & Output exception");
-                        e2.printStackTrace();
-                    }
+                    prescription.setPharmacist(pharmacist);
+                    database.updatePrescription(true, pharmacist.getPharmacistId(), prescriptionId);
                 }
 
             }

@@ -6,23 +6,33 @@ import java.sql.*;
 
 public class Datasource {
 
+//    static {
+//        try {
+//        Class.forName("org.postgresql.Driver");
+//    } catch (ClassNotFoundException e) {
+//        System.err.println("Server couldn't find postgres Driver class: \n" + e);
+//    }
+//    }
+
     private static final String DB_NAME = "prescriptionsdb";
     private static final String CONNECTION_STRING = "jdbc:postgresql://localhost:5432/" + DB_NAME;
     private static final String USERNAME = "postgres";
     private static final String PASSWORD = "postgres";
 
-    private Connection connection;
-
     private static final String INSERT_PRESCRIPTION = "INSERT INTO prescriptions (prescriptionid, patientid, medicineid, prescriptorid, issuedate, comment, quantity, payment, isrealized, pharmacistid)" +
-            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
-    private static final String INSERT_PRESCRIPTOR = "INSERT INTO prescriptors (prescriptorid, forename, surname, phonenumber) VALUES (?, ?, ?, ?);";
-    private static final String INSERT_MEDICINE = "INSERT INTO medicines (medicineid, name, description) VALUES (?, ?, ?);";
-    private static final String INSERT_PATIENT = "INSERT INTO patients (patientid, forename, surname) VALUES (?, ?, ?)";
-    private static final String INSERT_PHARMACIST = "INSERT INTO pharmacists (pharmacistid, password, forename, surname) VALUES (?, ?, ? ,?)";
+            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (prescriptionid) DO NOTHING;";
+    private static final String INSERT_PRESCRIPTOR = "INSERT INTO prescriptors (prescriptorid, forename, surname, phonenumber) VALUES (?, ?, ?, ?) ON CONFLICT (prescriptorid) DO NOTHING;";
+    private static final String INSERT_MEDICINE = "INSERT INTO medicines (medicineid, name, description) VALUES (?, ?, ?) ON CONFLICT (medicineid) DO NOTHING;";
+    private static final String INSERT_PATIENT = "INSERT INTO patients (patientid, forename, surname) VALUES (?, ?, ?) ON CONFLICT (patientid) DO NOTHING;";
+    private static final String INSERT_PHARMACIST = "INSERT INTO pharmacists (pharmacistid, password, forename, surname) VALUES (?, ?, ? ,?) ON CONFLICT (pharmacistid) DO NOTHING;";
 
-    private static final String SELECT_PRESCRIPTION = "SELECT patients.patientid, medicines.medicineid, presciptors.prescriptorid, prescriptions.issuedate, prescriptions.comment, prescriptions.quantity, prescriptions.payment, " +
-            "prescriptions.isrealized, prescriptions.pharmacistid, patients.forename, patients.surname, medicines.name, medicines.description, prescriptors.forename, prescriptors.surname, prescriptors.phonenumber FROM prescriptions " +
-            "INNER JOIN patients ON patients.patientid = prescriptions.patientid INNER JOIN medicines ON prescriptions.medicineid = medicines.medicineid INNER JOIN prescribers ON prescribers.prescriberid = prescriptions.prescriberid WHERE prescriptions.prescriptionid = ? ;";
+    private static final String SELECT_PRESCRIPTION = "SELECT patients.patientid, medicines.medicineid, prescriptors.prescriptorid, prescriptions.issuedate, prescriptions.comment, prescriptions.quantity, prescriptions.payment, " +
+            "prescriptions.isrealized, prescriptions.pharmacistid, patients.forename, patients.surname, medicines.name, medicines.description, prescriptors.forename as pforename, prescriptors.surname as psurname, prescriptors.phonenumber, prescriptions.pharmacistid FROM prescriptions " +
+            "INNER JOIN patients ON patients.patientid = prescriptions.patientid INNER JOIN medicines ON prescriptions.medicineid = medicines.medicineid INNER JOIN prescriptors ON prescriptors.prescriptorid = prescriptions.prescriptorid WHERE prescriptions.prescriptionid = ? ;";
+
+    private static final String SELECT_PHARMACIST = "SELECT * FROM pharmacists WHERE password = ? AND pharmacistid = ?;";
+
+    private static final String UPDATE_PRESCRIPTION = "UPDATE prescriptions SET isrealized = ?, pharmacistid = ? WHERE prescriptionid = ?;";
 
     private Connection initializeDataBaseConnection(){
         try {
@@ -112,8 +122,8 @@ public class Datasource {
 
         try {
             selectPrescription = connection.prepareStatement(SELECT_PRESCRIPTION);
+            selectPrescription.setLong(1,prescriptionID);
             ResultSet resultSet = selectPrescription.executeQuery();
-
 
             Patient patient = null;
             Medicine medicine = null;
@@ -123,31 +133,32 @@ public class Datasource {
                 prescription = new Prescription();
                 prescription.setPrescriptionId(prescriptionID);
 
+                medicine = new Medicine();
+                medicine.setDescription(resultSet.getString("description"));
+                medicine.setMedicineId(resultSet.getLong("medicineid"));
+                medicine.setName(resultSet.getString("name"));
                 prescription.setMedicine(medicine);
-                medicine.setDescription(resultSet.getString("medicines.description"));
-                medicine.setMedicineId(resultSet.getLong("medicines.medicineid"));
-                medicine.setName(resultSet.getString("medicines.name"));
 
+                patient = new Patient();
                 prescription.setPatient(patient);
-                patient.setPatientId(resultSet.getLong("patients.patientid"));
-                patient.setForename(resultSet.getString("patients.forename"));
-                patient.setSurname(resultSet.getString("patients.surname"));
+                patient.setPatientId(resultSet.getLong("patientid"));
+                patient.setForename(resultSet.getString("forename"));
+                patient.setSurname(resultSet.getString("surname"));
 
+                prescriptor = new Prescriptor();
                 prescription.setPrescriptor(prescriptor);
-                prescriptor.setPrescriptorId(resultSet.getLong("prescriptors.prescriptorid"));
-                prescriptor.setForename(resultSet.getString("prescriptors.forename"));
-                prescriptor.setSurname(resultSet.getString("prescriptors.surname"));
-                prescriptor.setPhoneNumber(resultSet.getString("prescriptors.phonenumber"));
+                prescriptor.setPrescriptorId(resultSet.getLong("prescriptorid"));
+                prescriptor.setForename(resultSet.getString("pforename"));
+                prescriptor.setSurname(resultSet.getString("psurname"));
+                prescriptor.setPhoneNumber(resultSet.getString("phonenumber"));
 
-                prescription.setPharmacist(null); // to do
-                prescription.setQuantity(resultSet.getInt("prescriptions.quantity"));
-                prescription.setRealized(resultSet.getBoolean("prescriptions.isrealized"));
-                prescription.setIssueDate(resultSet.getDate("prescriptions.issuedate"));
-                prescription.setComment(resultSet.getString("prescriptions.comment"));
-                prescription.setPayment(resultSet.getDouble("prescriptions.payment"));
+                prescription.setPrescriptionId(prescriptionID);
+                prescription.setQuantity(resultSet.getInt("quantity"));
+                prescription.setRealized(resultSet.getBoolean("isrealized"));
+                prescription.setIssueDate(resultSet.getDate("issuedate"));
+                prescription.setComment(resultSet.getString("comment"));
+                prescription.setPayment(resultSet.getDouble("payment"));
             }
-
-
 
         } catch (SQLException e) {
             System.err.println("Error during invoke of SQL query: \n" + e.getMessage());
@@ -156,11 +167,63 @@ public class Datasource {
         } finally {
             closeDatabaseResources(connection, selectPrescription);
         }
-
-
         return prescription;
-
     }
+
+    public Pharmacist getPharmacist(long pharmacistid, String password){
+
+        Connection connection = initializeDataBaseConnection();
+        Pharmacist pharmacist = null;
+
+        PreparedStatement selectPharmacist = null;
+
+        try {
+            selectPharmacist = connection.prepareStatement(SELECT_PHARMACIST);
+            selectPharmacist.setLong(2, pharmacistid);
+            selectPharmacist.setString(1, password);
+            ResultSet resultSet = selectPharmacist.executeQuery();
+
+            if (resultSet.next()){
+                pharmacist = new Pharmacist();
+                pharmacist.setPharmacistId(pharmacistid);
+                pharmacist.setPassword(password);
+                pharmacist.setForename(resultSet.getString("forename"));
+                pharmacist.setSurname(resultSet.getString("surname"));
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Error during invoke of SQL query: \n" + e.getMessage());
+            throw new RuntimeException("Error during invoke of SQL query");
+        } finally {
+            closeDatabaseResources(connection, selectPharmacist);
+        }
+
+        return pharmacist;
+    }
+
+    public void updatePrescription(boolean isRealized, long pharmacistid, long prescriptionid){
+
+        Connection connection = initializeDataBaseConnection();
+
+        PreparedStatement updatePrescription = null;
+
+        try {
+            updatePrescription = connection.prepareStatement(UPDATE_PRESCRIPTION);
+            updatePrescription.setBoolean(1, isRealized);
+            updatePrescription.setLong(2,pharmacistid);
+            updatePrescription.setLong(3, prescriptionid);
+
+            updatePrescription.executeUpdate();
+
+        } catch (SQLException e) {
+            System.err.println("Error during invoke of SQL query: \n" + e.getMessage());
+            throw new RuntimeException("Error during invoke of SQL query");
+        } finally {
+            closeDatabaseResources(connection, updatePrescription);
+        }
+    }
+
+
 
 
 

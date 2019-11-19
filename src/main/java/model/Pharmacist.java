@@ -11,6 +11,9 @@ public class Pharmacist implements Serializable {
     private String surname;
     private Set<Integer> realizedPrescriptionIds;
 
+    public Pharmacist() {
+    }
+
     public Pharmacist(long pharmacistId, String password, String forename, String surname) {
         this.pharmacistId = pharmacistId;
         this.password = password;
@@ -19,12 +22,28 @@ public class Pharmacist implements Serializable {
         this.realizedPrescriptionIds = new HashSet<>();
     }
 
-    public long getPharmacistId() {
-        return pharmacistId;
+    public void setPharmacistId(long pharmacistId) {
+        this.pharmacistId = pharmacistId;
     }
 
-    public void setPharmacistId(int pharmacistId) {
-        this.pharmacistId = pharmacistId;
+    public String getForename() {
+        return forename;
+    }
+
+    public void setForename(String forename) {
+        this.forename = forename;
+    }
+
+    public String getSurname() {
+        return surname;
+    }
+
+    public void setSurname(String surname) {
+        this.surname = surname;
+    }
+
+    public long getPharmacistId() {
+        return pharmacistId;
     }
 
     public String getPassword() {
