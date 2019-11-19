@@ -2,18 +2,18 @@ package model;
 
 import java.io.Serializable;
 
-public class Issuer implements Serializable {
-    private int issuerId;
+public class Prescriptor implements Serializable {
+    private long prescriptorId;
     private String forename;
     private String surname;
     private String phoneNumber;
 
-    public int getIssuerId() {
-        return issuerId;
+    public long getPrescriptorId() {
+        return prescriptorId;
     }
 
-    public void setIssuerId(int issuerId) {
-        this.issuerId = issuerId;
+    public void setPrescriptorId(long prescriptorId) {
+        this.prescriptorId = prescriptorId;
     }
 
     public String getForename() {
@@ -42,8 +42,8 @@ public class Issuer implements Serializable {
 
     @Override
     public String toString() {
-        return "Issuer{" +
-                "issuerId=" + issuerId +
+        return "Prescriptor{" +
+                "issuerId=" + prescriptorId +
                 ", forename='" + forename + '\'' +
                 ", surname='" + surname + '\'' +
                 ", phoneNumber='" + phoneNumber + '\'' +

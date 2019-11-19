@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.iki.elonen.NanoHTTPD;
 import model.Prescription;
+import storage.Datasource;
 import storage.ListOfPharmacists;
 import storage.TemporaryPrescriptionStorage;
 
@@ -14,7 +15,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
-import java.util.Date;
+import java.sql.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -22,6 +23,7 @@ public class PrescriptionController {
     private final static String PRESCRIPTION_ID_PARAM_NAME = "prescriptionId";
     private final static String PHARMACIST_ID_PARAM_NAME = "pharmacistId";
     private final static String PHARMACIST_PASSWORD_PARAM_NAME = "pharmacistPassword";
+    private Datasource database = new Datasource();
 
     private static final String PATH_TO_PRESCRIPTION_STORAGE = "src/main/java/storage/prescriptions.txt";
     private static final String PATH_TO_PHARMACISTS_STORAGE = "src/main/java/storage/pharmacists.txt";
@@ -40,23 +42,17 @@ public class PrescriptionController {
             randomPrescriptionId = requestPrescription.hashCode();
             requestPrescription.setPrescriptionId(randomPrescriptionId);
 
-            requestPrescription.setIssueDate(new Date());
+            requestPrescription.setIssueDate(new Date(System.currentTimeMillis()));
             requestPrescription.setRealized(false);
+            requestPrescription.setPharmacist(null);
 
-            TemporaryPrescriptionStorage.addNewPrescription(requestPrescription);
-
-            try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(PATH_TO_PRESCRIPTION_STORAGE))) {
-                oos.writeObject(TemporaryPrescriptionStorage.PRESCRIPTIONS);
-            } catch (FileNotFoundException e1){
-                System.err.println("File has not been found");
-                e1.printStackTrace();
-            } catch (IOException e2) {
-                System.err.println("Input & Output exception");
-                e2.printStackTrace();
-            }
+            database.addPrescription(requestPrescription);
 
         } catch (IOException e) {
             System.err.println("Error during process request: " + e);
+            return newFixedLengthResponse(INTERNAL_ERROR, "text/plain", "Internal error prescription has not been added to the system");
+        } catch (RuntimeException e2) {
+            System.err.println(e2.getMessage());
             return newFixedLengthResponse(INTERNAL_ERROR, "text/plain", "Internal error prescription has not been added to the system");
         }
 
@@ -69,16 +65,16 @@ public class PrescriptionController {
         if (requestParameters.containsKey(PRESCRIPTION_ID_PARAM_NAME)) {
             List<String> prescriptionIdParams = requestParameters.get(PRESCRIPTION_ID_PARAM_NAME);
             String prescriptionIdParam = prescriptionIdParams.get(0);
-            int prescriptionId = 0;
+            long prescriptionId = 0;
 
             try {
-                prescriptionId = Integer.parseInt(prescriptionIdParam);
+                prescriptionId = Long.parseLong(prescriptionIdParam);
             } catch (NumberFormatException e) {
                 System.err.println("Error during convert request");
                 return newFixedLengthResponse(BAD_REQUEST, "text/plain", "Request param 'prescriptionId' has to be a number");
             }
 
-            Prescription prescription = TemporaryPrescriptionStorage.getPrescription(prescriptionId);
+            Prescription prescription = database.getPrescription(prescriptionId);
             if (prescription != null) {
                 try {
                     ObjectMapper objectMapper = new ObjectMapper();

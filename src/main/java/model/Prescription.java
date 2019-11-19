@@ -1,26 +1,34 @@
 package model;
 
 import java.io.Serializable;
-import java.util.Date;
-import java.util.List;
+import java.sql.Date;
 import java.util.Objects;
 
 public class Prescription implements Serializable {
-    private int prescriptionId;
+    private long prescriptionId;
     private Patient patient;
     private Medicine medicine;
-    private Issuer issuer;
+    private Prescriptor prescriptor;
     private Date issueDate;
     private String comment;
     private int quantity; // quantity of medicine
-    private int payment; //level of repayment in %'s
+    private double payment; //level of repayment in %'s
     private boolean isRealized;
+    private Pharmacist pharmacist;
 
-    public int getPrescriptionId() {
+    public Pharmacist getPharmacist() {
+        return pharmacist;
+    }
+
+    public void setPharmacist(Pharmacist pharmacist) {
+        this.pharmacist = pharmacist;
+    }
+
+    public long getPrescriptionId() {
         return prescriptionId;
     }
 
-    public void setPrescriptionId(int prescriptionId) {
+    public void setPrescriptionId(long prescriptionId) {
         this.prescriptionId = prescriptionId;
     }
 
@@ -40,12 +48,12 @@ public class Prescription implements Serializable {
         this.medicine = medicine;
     }
 
-    public Issuer getIssuer() {
-        return issuer;
+    public Prescriptor getPrescriptor() {
+        return prescriptor;
     }
 
-    public void setIssuer(Issuer issuer) {
-        this.issuer = issuer;
+    public void setPrescriptor(Prescriptor prescriptor) {
+        this.prescriptor = prescriptor;
     }
 
     public Date getIssueDate() {
@@ -72,11 +80,11 @@ public class Prescription implements Serializable {
         this.quantity = quantity;
     }
 
-    public int getPayment() {
+    public double getPayment() {
         return payment;
     }
 
-    public void setPayment(int payment) {
+    public void setPayment(double payment) {
         this.payment = payment;
     }
 
@@ -98,14 +106,14 @@ public class Prescription implements Serializable {
                 payment == that.payment &&
                 isRealized == that.isRealized &&
                 Objects.equals(medicine, that.medicine) &&
-                Objects.equals(issuer, that.issuer) &&
+                Objects.equals(prescriptor, that.prescriptor) &&
                 Objects.equals(issueDate, that.issueDate) &&
                 Objects.equals(comment, that.comment);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(prescriptionId, medicine, issuer, issueDate, comment, quantity, payment, isRealized);
+        return Objects.hash(prescriptionId, medicine, prescriptor, issueDate, comment, quantity, payment, isRealized);
     }
 
     @Override
@@ -114,7 +122,7 @@ public class Prescription implements Serializable {
                 "prescriptionId=" + prescriptionId +
                 ", patient=" + patient +
                 ", medicine=" + medicine +
-                ", issuer=" + issuer +
+                ", prescriptor=" + prescriptor +
                 ", issueDate=" + issueDate +
                 ", comment='" + comment + '\'' +
                 ", quantity=" + quantity +

@@ -3,15 +3,15 @@ package model;
 import java.io.Serializable;
 
 public class Medicine implements Serializable {
-    private int medicineId;
+    private long medicineId;
     private String name;
     private String description;
 
-    public int getMedicineId() {
+    public long getMedicineId() {
         return medicineId;
     }
 
-    public void setMedicineId(int medicineId) {
+    public void setMedicineId(long medicineId) {
         this.medicineId = medicineId;
     }
 

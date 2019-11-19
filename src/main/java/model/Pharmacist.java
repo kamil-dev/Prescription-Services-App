@@ -5,13 +5,13 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class Pharmacist implements Serializable {
-    private int pharmacistId;
+    private long pharmacistId;
     private String password;
     private String forename;
     private String surname;
     private Set<Integer> realizedPrescriptionIds;
 
-    public Pharmacist(int pharmacistId, String password, String forename, String surname) {
+    public Pharmacist(long pharmacistId, String password, String forename, String surname) {
         this.pharmacistId = pharmacistId;
         this.password = password;
         this.forename = forename;
@@ -19,7 +19,7 @@ public class Pharmacist implements Serializable {
         this.realizedPrescriptionIds = new HashSet<>();
     }
 
-    public int getPharmacistId() {
+    public long getPharmacistId() {
         return pharmacistId;
     }
 
