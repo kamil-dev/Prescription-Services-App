@@ -94,9 +94,6 @@ public class PrescriptionServicesAppTest {
         with().param("prescriptionId",123456).when().get("/prescription/get")
                 .then().statusCode(404);
     }
-
-    @Test
-
-
+    
 
 }
