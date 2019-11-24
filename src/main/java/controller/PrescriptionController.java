@@ -83,7 +83,7 @@ public class PrescriptionController {
             }
             return newFixedLengthResponse(NOT_FOUND, "application/json", "");
         }
-        return newFixedLengthResponse(BAD_REQUEST, "text/plain", "Wrong request params");
+        return newFixedLengthResponse(BAD_REQUEST, "text/plain", "Wrong request parameters");
     }
 
     public NanoHTTPD.Response serveRealizePrescription(NanoHTTPD.IHTTPSession session) {

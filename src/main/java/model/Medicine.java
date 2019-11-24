@@ -1,11 +1,21 @@
 package model;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 public class Medicine implements Serializable {
     private long medicineId;
     private String name;
     private String description;
+
+    public Medicine(long medicineId, String name, String description) {
+        this.medicineId = medicineId;
+        this.name = name;
+        this.description = description;
+    }
+
+    public Medicine() {
+    }
 
     public long getMedicineId() {
         return medicineId;
@@ -38,5 +48,20 @@ public class Medicine implements Serializable {
                 ", name='" + name + '\'' +
                 ", description='" + description + '\'' +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Medicine medicine = (Medicine) o;
+        return medicineId == medicine.medicineId &&
+                Objects.equals(name, medicine.name) &&
+                Objects.equals(description, medicine.description);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(medicineId, name, description);
     }
 }

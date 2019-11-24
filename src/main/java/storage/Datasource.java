@@ -6,13 +6,13 @@ import java.sql.*;
 
 public class Datasource {
 
-//    static {
-//        try {
-//        Class.forName("org.postgresql.Driver");
-//    } catch (ClassNotFoundException e) {
-//        System.err.println("Server couldn't find postgres Driver class: \n" + e);
-//    }
-//    }
+    static {
+        try {
+        Class.forName("org.postgresql.Driver");
+    } catch (ClassNotFoundException e) {
+        System.err.println("Server couldn't find postgres Driver class: \n" + e);
+    }
+    }
 
     private static final String DB_NAME = "prescriptionsdb";
     private static final String CONNECTION_STRING = "jdbc:postgresql://localhost:5432/" + DB_NAME;
